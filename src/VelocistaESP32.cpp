@@ -2,6 +2,7 @@
 #include <QTRSensors.h>
 #include <math.h>
 #include "apwifieeprommode.h"
+#include "pidcontrolweb.h"
 // ------------------ Sensores QTR ------------------
 QTRSensors qtr;
 const uint8_t SensorCount = 8;
@@ -31,10 +32,11 @@ const int PWMB_channel = 1;
 // ------------------ PID Variables ------------------
 const int vmin = 80;
 const int vmax = 150;
-const float Kp = 0.015;
-const float Ki = 0.0003;
-const float Kd = 0.2;
-const float kv = 0.07;
+float Kp = 0.015;
+float Ki = 0.0003;
+float Kd = 0.2;
+float kv = 0.002; // constante de velocidad
+bool robotGo = false;
 
 int p, d, u, vbase;
 long i;
@@ -43,9 +45,11 @@ int p_old;
 // Prototipo de función
 void drive(int L, int R);
 
-void setup() {
-  intentoconexion("VelocistaESP32", "12345678"); // Nombre y contraseña de la red creada por el ESP32
+bool wifiConectado = false;
 
+void setup() {
+  wifiConectado = intentoconexion("VelocistaESP32", "12345678");
+  setupPIDWeb(); // Inicializa servidor web para PID
   Serial.begin(115200);
 
   // Configura pines del driver como salida
@@ -69,9 +73,15 @@ void setup() {
   // Inicializa variables PID
   p_old = 0;
   i = 0;
+  cargarPIDdeEEPROM();
 }
 
 void loop() {
+  if (!wifiConectado) {
+    // Espera hasta que haya conexión Wi-Fi
+    return;
+  }
+
   qtr.read(sensorValues); // leer sensores
 
   // Error proporcional ponderado

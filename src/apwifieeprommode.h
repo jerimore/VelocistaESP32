@@ -152,22 +152,33 @@ void loopAP()
     server.handleClient();
 }
 
-void intentoconexion(const char *apname, const char *appassword)
+bool intentoconexion(const char *apname, const char *appassword)
 {
-
     Serial.begin(115200);
     EEPROM.begin(512);
     Serial.println("ingreso a intentoconexion");
     if (!lastRed())
-    {                               // redirige a la funcion
-        
+    {
         Serial.println("Conectarse desde su celular a la red creada");
         Serial.println("en el navegador colocar la ip:");
         Serial.println("192.168.4.1");
-        initAP(apname, appassword); // nombre de wifi a generarse y contrasena
+        initAP(apname, appassword);
     }
-    while (WiFi.status() != WL_CONNECTED) // mientras no se encuentre conectado a un red
+    while (WiFi.status() != WL_CONNECTED)
     {
-        loopAP(); // genera una red wifi para que se configure desde la app movil
+        loopAP();
     }
+    return WiFi.status() == WL_CONNECTED;
+}
+
+void loop() {
+  if (!wifiConectado) {
+    return;
+  }
+
+  server.handleClient(); // <-- Añade esto para servir la web
+
+  if (!robotGo) return; // Espera a que se presione GO
+
+  // ...código de control del robot...
 }
