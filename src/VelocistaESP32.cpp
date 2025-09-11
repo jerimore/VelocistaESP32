@@ -48,6 +48,7 @@ void drive(int L, int R);
 bool wifiConectado = false;
 
 void setup() {
+  EEPROM.begin(512); // Inicializa EEPROM solo una vez
   wifiConectado = intentoconexion("VelocistaESP32", "12345678");
   setupPIDWeb(); // Inicializa servidor web para PID
   Serial.begin(115200);
@@ -78,9 +79,12 @@ void setup() {
 
 void loop() {
   if (!wifiConectado) {
-    // Espera hasta que haya conexión Wi-Fi
     return;
   }
+
+  server.handleClient();
+
+  if (!robotGo) return;
 
   qtr.read(sensorValues); // leer sensores
 

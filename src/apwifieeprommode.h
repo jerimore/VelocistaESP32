@@ -75,10 +75,6 @@ void handleWifi()
         // guardar en memoria eeprom la ultima red conectada
 
         Serial.print("Guardando en memoria eeprom...");
-/*        if (posW == 0)
-            posW = 50;
-        else
-            posW = 0;*/
         String varsave = leerStringDeEEPROM(300);
         if (varsave == "a") {
             posW = 0;
@@ -90,7 +86,6 @@ void handleWifi()
         }
         escribirStringEnEEPROM(0 + posW, ssid);
         escribirStringEnEEPROM(100 + posW, password);
-        // guardar en memoria eeprom la ultima red conectada
 
         Serial.println("Conexión establecida");
         server.send(200, "text/plain", "Conexión establecida");
@@ -103,8 +98,7 @@ void handleWifi()
 }
 
 bool lastRed()
-{ // verifica si una de las 2 redes guardadas en la memoria eeprom se encuentra disponible
-    // para conectarse en ese momento
+{
     for (int psW = 0; psW <= 50; psW += 50)
     {
         String usu = leerStringDeEEPROM(0 + psW);
@@ -133,7 +127,7 @@ bool lastRed()
 }
 
 void initAP(const char *apSsid, const char *apPassword)
-{ // Nombre de la red Wi-Fi y  Contraseña creada por el ESP32
+{
     Serial.begin(115200);
 
     WiFi.mode(WIFI_AP);
@@ -148,14 +142,12 @@ void initAP(const char *apSsid, const char *apPassword)
 
 void loopAP()
 {
-
     server.handleClient();
 }
 
 bool intentoconexion(const char *apname, const char *appassword)
 {
     Serial.begin(115200);
-    EEPROM.begin(512);
     Serial.println("ingreso a intentoconexion");
     if (!lastRed())
     {
@@ -170,15 +162,4 @@ bool intentoconexion(const char *apname, const char *appassword)
     }
     return WiFi.status() == WL_CONNECTED;
 }
-
-void loop() {
-  if (!wifiConectado) {
-    return;
-  }
-
-  server.handleClient(); // <-- Añade esto para servir la web
-
-  if (!robotGo) return; // Espera a que se presione GO
-
-  // ...código de control del robot...
-}
+// Fin de apwifieeprommode.h
