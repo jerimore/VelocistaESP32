@@ -8,6 +8,10 @@ extern float Ki;
 extern float Kd;
 extern float kv;
 extern bool robotGo;
+extern long i;
+extern uint16_t sensorValues[6]; // O el tamaño que uses
+extern const uint8_t SensorCount;
+
 
 // Referencia al servidor web principal
 extern WebServer server;
@@ -42,7 +46,7 @@ void handlePIDRoot() {
                   ".go { background-color: #4CAF50; color: white; }"
                   ".stop { background-color: #f44336; color: white; }"
                   "</style></head><body>"
-                  "<h2>Configuración PID y Control</h2>"
+                  "<h2>Configuracion PID y Control</h2>"
                   "<div class='card'>"
                   "<form method='POST' action='/pid'>"
                   "<div class='slider-container'>"
@@ -66,15 +70,32 @@ void handlePIDRoot() {
                   "<div class='value'>Valor: <span id='kv_val'>" + String(kv, 4) + "</span></div>"
                   "</div>"
                   "<input type='submit' value='Guardar PID' class='btn go'>"
-                  "</form></div>"
-                  "<div>"
-                  "<form method='POST' action='/go' style='display:inline;'>"
-                  "<input type='submit' value='GO' class='btn go'>"
-                  "</form>"
-                  "<form method='POST' action='/stop' style='display:inline;'>"
-                  "<input type='submit' value='STOP' class='btn stop'>"
-                  "</form>"
-                  "</div></body></html>";
+                  "</form></div>";
+
+    // Añade los valores QTR aquí
+    html += "<div class='card'><h3>Valores Sensores QTR</h3><p id='qtr_values'>Cargando...</p></div>";
+    html += R"(
+<script>
+function updateQTR() {
+    fetch('/qtrvalues')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('qtr_values').innerText = data.sensors.join(', ');
+        });
+}
+setInterval(updateQTR, 1000);
+updateQTR();
+</script>
+)";
+
+    html += "<div>"
+            "<form method='POST' action='/go' style='display:inline;'>"
+            "<input type='submit' value='GO' class='btn go'>"
+            "</form>"
+            "<form method='POST' action='/stop' style='display:inline;'>"
+            "<input type='submit' value='STOP' class='btn stop'>"
+            "</form>"
+            "</div></body></html>";
 
     server.send(200, "text/html", html);
 }
@@ -91,6 +112,7 @@ void handlePID() {
 
 void handleGo() {
     robotGo = true;
+    i = 0; // Reinicia la integral al iniciar el movimiento
     server.sendHeader("Location", "/pidcontrol");
     server.send(303, "text/plain", "");
 }
@@ -100,10 +122,21 @@ void handleStop() {
     server.sendHeader("Location", "/pidcontrol");
     server.send(303, "text/plain", "");
 }
+void handleQTRValues() {
+    String json = "{ \"sensors\": [";
+    for (int i = 0; i < SensorCount; i++) {
+        json += String(sensorValues[i]);
+        if (i < SensorCount - 1) json += ", ";
+    }
+    json += "] }";
+    server.send(200, "application/json", json);
+}
 
 void setupPIDWeb() {
+    server.begin();
     server.on("/pidcontrol", handlePIDRoot);
     server.on("/pid", HTTP_POST, handlePID);
     server.on("/go", HTTP_POST, handleGo);
     server.on("/stop", HTTP_POST, handleStop);
+    server.on("/qtrvalues", handleQTRValues); // Nueva ruta para valores QTR
 }

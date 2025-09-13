@@ -5,23 +5,23 @@
 #include "pidcontrolweb.h"
 // ------------------ Sensores QTR ------------------
 QTRSensors qtr;
-const uint8_t SensorCount = 8;
-const uint8_t sensorPins[SensorCount] = {36, 39, 34, 35, 32, 33, 25, 26};
+const uint8_t SensorCount = 6;
+const uint8_t sensorPins[SensorCount] = {36, 39, 34, 35, 32, 33};
 uint16_t sensorValues[SensorCount];
 
 // ------------------ Pines Motor / Driver TB6612 ------------------
 // Motor A
-const int PWMA = 27;
-const int AIN1 = 14;
-const int AIN2 = 12;
+const int PWMA = 3;
+const int AIN1 = 21;
+const int AIN2 = 22;
 
 // Motor B
-const int PWMB = 13;
-const int BIN1 = 4;
-const int BIN2 = 2;
+const int PWMB = 1;
+const int BIN1 = 18;
+const int BIN2 = 19;
 
 // Standby
-const int PINSTDBY = 15;
+const int PINSTDBY = 23;
 
 // ------------------ PWM ESP32 ------------------
 const int freq = 5000;
@@ -70,7 +70,6 @@ void setup() {
   // Configura sensores QTR
   qtr.setTypeAnalog();
   qtr.setSensorPins(sensorPins, SensorCount);
-
   // Inicializa variables PID
   p_old = 0;
   i = 0;
@@ -84,13 +83,21 @@ void loop() {
 
   server.handleClient();
 
-  if (!robotGo) return;
+  if (!robotGo) {
+    drive(0, 0); // Detiene ambos motores
+    return;
+  }
 
   qtr.read(sensorValues); // leer sensores
 
+  Serial.print("Sensores: ");
+  for(uint8_t i=0; i<SensorCount; i++){
+    Serial.print(sensorValues[i]);
+    Serial.print(" ");
+  }
   // Error proporcional ponderado
-  p = -7*sensorValues[0] -5*sensorValues[1] -3*sensorValues[2] -1*sensorValues[3]
-      +1*sensorValues[4] +3*sensorValues[5] +5*sensorValues[6] +7*sensorValues[7];
+  p = -5*sensorValues[0] -3*sensorValues[1] -1*sensorValues[2]
+      +1*sensorValues[3] +3*sensorValues[4] +5*sensorValues[5];
 
   i += p;           // integral
   d = p - p_old;    // derivativo
@@ -100,7 +107,7 @@ void loop() {
   if ((p * i) < 0) i = 0;
 
   u = Kp*p + Ki*i + Kd*d;                     // salida PID
-  vbase = vmin + (vmax - vmin) * exp(-kv*abs(Kp*p)); // velocidad base
+  vbase = vmin + (vmax - vmin) /  ( 1 + kv * abs(Kp * p)); // velocidad base
 
   // Ajusta velocidad de ruedas
   drive((int)(vbase + u), (int)(vbase - u));
